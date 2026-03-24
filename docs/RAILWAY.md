@@ -44,7 +44,8 @@ Add this **exact** redirect URI in Entra → your app → **Authentication**:
 This repo includes [`railway.toml`](../railway.toml):
 
 - **Build:** [Railpack](https://docs.railway.com/builds/railpack) analyzes the repo, installs dependencies, and runs `npm run build` (Next.js). Optional [`railpack.json`](../railpack.json) pins **Node 22** and installs **OpenSSL** (apt) for Prisma. TypeScript, Tailwind, PostCSS, ESLint, `dotenv` (for `prisma.config.ts`), and `@types/*` are in **`dependencies`** so production installs still have everything needed for `postinstall` / `prisma generate` and `next build`.
-- **Start:** `npx prisma migrate deploy && npm run start`.
+- **Pre-deploy:** `npx prisma migrate deploy` (runs before the new revision receives traffic).
+- **Start:** `npm run start` (`next start -H 0.0.0.0` so the server listens on all interfaces for Railway’s health checks).
 
 There is **no** root `Dockerfile` so Railway does not auto-switch to Dockerfile builds; local **Docker Compose** uses [`Dockerfile.compose`](../Dockerfile.compose) instead.
 

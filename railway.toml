@@ -6,7 +6,9 @@ builder = "RAILPACK"
 # Node version: see railpack.json (packages.node) or package.json engines.
 
 [deploy]
-startCommand = "sh -c 'npx prisma migrate deploy && npm run start'"
+# Migrations before the new revision goes live; keeps `next start` fast for healthchecks.
+preDeployCommand = "npx prisma migrate deploy"
+startCommand = "npm run start"
 healthcheckPath = "/"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
