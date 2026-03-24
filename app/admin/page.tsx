@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -35,10 +34,6 @@ export default function AdminPage() {
   const [newDay, setNewDay] = useState(1);
   const [newStart, setNewStart] = useState("09:00");
   const [newEnd, setNewEnd] = useState("17:00");
-
-  const searchParams = useSearchParams();
-  const oauthError = searchParams.get("ms_error");
-  const oauthSuccess = searchParams.get("ms_connected");
 
   const load = useCallback(async () => {
     setErr(null);
@@ -79,6 +74,17 @@ export default function AdminPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot API bootstrap into local state
     void load();
   }, [load]);
+
+  /** OAuth redirect params — read on client only to avoid hydration mismatches from useSearchParams. */
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect -- sync URL query into UI after mount */
+    const sp = new URLSearchParams(window.location.search);
+    const msErr = sp.get("ms_error");
+    const msOk = sp.get("ms_connected");
+    if (msErr) setErr(safeDecode(msErr));
+    if (msOk) setMsg("Microsoft account connected.");
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
 
   async function login(e: React.FormEvent) {
     e.preventDefault();
@@ -225,16 +231,6 @@ export default function AdminPage() {
         </button>
       </div>
       <h1 className="mt-4 text-2xl font-semibold">Admin</h1>
-      {oauthSuccess && (
-        <p className="mt-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900 dark:border-green-900 dark:bg-green-950 dark:text-green-100">
-          Microsoft account connected.
-        </p>
-      )}
-      {oauthError && (
-        <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-100">
-          {safeDecode(oauthError)}
-        </p>
-      )}
       {msg && (
         <p className="mt-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900 dark:border-green-900 dark:bg-green-950 dark:text-green-100">
           {msg}

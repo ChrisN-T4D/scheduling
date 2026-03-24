@@ -1,9 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type Slot = { start: string; end: string };
+
+function computeRange(): { from: string; to: string } {
+  const from = new Date();
+  from.setUTCHours(0, 0, 0, 0);
+  const to = new Date(from);
+  to.setUTCDate(to.getUTCDate() + 14);
+  return { from: from.toISOString(), to: to.toISOString() };
+}
 
 export default function BookPage() {
   const [timezone, setTimezone] = useState("UTC");
@@ -19,15 +27,16 @@ export default function BookPage() {
   const [submitting, setSubmitting] = useState(false);
   const [doneUrl, setDoneUrl] = useState<string | null>(null);
 
-  const range = useMemo(() => {
-    const from = new Date();
-    from.setUTCHours(0, 0, 0, 0);
-    const to = new Date(from);
-    to.setUTCDate(to.getUTCDate() + 14);
-    return { from: from.toISOString(), to: to.toISOString() };
+  const [range, setRange] = useState<{ from: string; to: string } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    setRange(computeRange());
   }, []);
 
   const load = useCallback(async () => {
+    if (!range) return;
     setLoading(true);
     setError(null);
     try {
@@ -56,11 +65,12 @@ export default function BookPage() {
     } finally {
       setLoading(false);
     }
-  }, [range.from, range.to]);
+  }, [range]);
 
   useEffect(() => {
+    if (!range) return;
     void load();
-  }, [load]);
+  }, [range, load]);
 
   const formatSlot = (iso: string) => {
     const d = new Date(iso);
@@ -164,7 +174,7 @@ export default function BookPage() {
         </p>
       )}
       <div className="mt-6">
-        {loading ? (
+        {!range || loading ? (
           <p className="text-sm text-zinc-500">Loading open times…</p>
         ) : slots.length === 0 ? (
           <p className="text-sm text-zinc-500">No open slots in this range.</p>

@@ -50,6 +50,10 @@ Students pick open time slots from your **weekly rules**, minus **Microsoft 365*
 
 Create a **Server-to-Server OAuth** app in the Zoom Marketplace. Use **Account ID**, **Client ID**, and **Client Secret** in `.env`.
 
+## Railway
+
+See **[docs/RAILWAY.md](docs/RAILWAY.md)** for deploy steps (Postgres plugin, `DATABASE_URL`, `NEXT_PUBLIC_APP_URL`, Entra redirect).
+
 ## Docker (app + database)
 
 ```bash
@@ -67,13 +71,15 @@ The web container runs `prisma migrate deploy` before `npm run start`. Ensure `.
 - [`app/api`](app/api) — availability, book, OAuth callback, admin APIs  
 - [`lib`](lib) — Graph, Zoom, slot math, encryption, env  
 
-## Security notes
+## Security notes (summary)
 
-- Never commit `.env`. `TOKEN_ENCRYPTION_KEY` protects stored Microsoft refresh tokens.
+- Full write-up: **[docs/SECURITY.md](docs/SECURITY.md)**.
+- Never commit `.env`. `TOKEN_ENCRYPTION_KEY` must decode (base64) to **32 bytes**; it encrypts Microsoft refresh tokens at rest.
 - Use HTTPS in production; OAuth redirects must match Entra registration exactly.
 - Rotate `ADMIN_SECRET` and client secrets if exposed.
-- **Rate limits** (in-memory, per server instance): `/api/availability` ~120 requests / 5 minutes / IP; `/api/book` ~20 / 15 minutes / IP. For multiple app replicas, put a shared reverse proxy rate limit or Redis-based limiter in front.
-- **Double-booking**: the same slot is reserved in Postgres with `pg_advisory_xact_lock` before Zoom/Graph run, so concurrent requests cannot both claim the same start/end.
+- **Rate limits** (in-memory, per instance): availability, book, and **admin login**. Use a proxy or Redis for global limits if you scale out.
+- **Double-booking**: Postgres `pg_advisory_xact_lock` per slot before Zoom/Graph.
+- Production adds **security headers** (HSTS, frame denial, nosniff, etc.) via `next.config.ts`.
 
 ## Entra redirect URI checklist
 

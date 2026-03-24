@@ -1,12 +1,32 @@
+import { Buffer } from "node:buffer";
 import { z } from "zod";
 
 const schema = z.object({
   DATABASE_URL: z.string().min(1),
-  NEXT_PUBLIC_APP_URL: z.string().url(),
+  NEXT_PUBLIC_APP_URL: z
+    .string()
+    .url()
+    .transform((s) => s.replace(/\/+$/, "")),
   TOKEN_ENCRYPTION_KEY: z
     .string()
     .min(1)
-    .describe("Base64-encoded 32-byte key for AES-256-GCM"),
+    .superRefine((val, ctx) => {
+      try {
+        const buf = Buffer.from(val, "base64");
+        if (buf.length !== 32) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message:
+              "TOKEN_ENCRYPTION_KEY must be base64 that decodes to exactly 32 bytes (e.g. openssl rand -base64 32).",
+          });
+        }
+      } catch {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "TOKEN_ENCRYPTION_KEY must be valid base64.",
+        });
+      }
+    }),
   ADMIN_SECRET: z.string().min(8),
   MICROSOFT_CLIENT_ID: z.string().optional(),
   MICROSOFT_CLIENT_SECRET: z.string().optional(),

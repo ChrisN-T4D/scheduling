@@ -1,0 +1,5 @@
+# Extend Nixpacks defaults (see https://nixpacks.com/docs/configuration/file).
+# "..." keeps the Node provider’s packages; openssl helps Prisma engines on Nix.
+
+[phases.setup]
+nixPkgs = ["...", "openssl"]

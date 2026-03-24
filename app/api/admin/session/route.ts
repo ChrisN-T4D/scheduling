@@ -2,6 +2,8 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { createAdminToken, ADMIN_COOKIE } from "@/lib/admin-session";
 import { getEnv } from "@/lib/env";
+import { allowRateLimit, rateLimitRetryAfterSec } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/request-ip";
 
 const COOKIE_OPTS = {
   httpOnly: true,
@@ -11,7 +13,29 @@ const COOKIE_OPTS = {
   path: "/",
 };
 
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_MAX_ATTEMPTS = 20;
+
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  if (
+    !allowRateLimit({
+      key: `admin-login:${ip}`,
+      limit: LOGIN_MAX_ATTEMPTS,
+      windowMs: LOGIN_WINDOW_MS,
+    })
+  ) {
+    return NextResponse.json(
+      { error: "Too many login attempts" },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(rateLimitRetryAfterSec(LOGIN_WINDOW_MS)),
+        },
+      },
+    );
+  }
+
   let body: { password?: string };
   try {
     body = await request.json();
