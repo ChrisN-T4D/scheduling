@@ -1,0 +1,51 @@
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model GlobalSettings {
+  id            Int      @id @default(1)
+  timezone      String   @default("America/New_York")
+  slotMinutes   Int      @default(30)
+  bufferMinutes Int      @default(0)
+  updatedAt     DateTime @updatedAt
+}
+
+/// 0 = Sunday … 6 = Saturday (JavaScript convention)
+model WeeklyRule {
+  id          String @id @default(cuid())
+  dayOfWeek   Int
+  startMinute Int
+  endMinute   Int
+}
+
+model Booking {
+  id            String   @id @default(cuid())
+  startUtc      DateTime
+  endUtc        DateTime
+  studentEmail  String
+  studentName   String
+  notes         String?
+  zoomMeetingId String?
+  zoomJoinUrl   String?
+  graphEventId  String?
+  createdAt     DateTime @default(now())
+
+  @@index([startUtc])
+  @@index([endUtc])
+}
+
+model StoredCredential {
+  id              String    @id @default(cuid())
+  provider        String    @unique
+  refreshTokenEnc String
+  accessTokenEnc  String?
+  expiresAt       DateTime?
+  updatedAt       DateTime  @updatedAt
+}
