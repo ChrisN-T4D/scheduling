@@ -3,7 +3,7 @@
 
 [build]
 builder = "NIXPACKS"
-# Optional: set NIXPACKS_NODE_VERSION=22 on the service if the build picks an older Node.
+# Optional: set NIXPACKS_NODE_VERSION=22 on the service if the build uses an older Node.
 
 [deploy]
 startCommand = "sh -c 'npx prisma migrate deploy && npm run start'"

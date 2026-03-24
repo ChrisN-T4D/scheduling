@@ -43,10 +43,16 @@ Add this **exact** redirect URI in Entra → your app → **Authentication**:
 
 This repo includes [`railway.toml`](../railway.toml):
 
-- **Build:** Nixpacks — `npm ci` + `npm run build`. [`nixpacks.toml`](../nixpacks.toml) adds **openssl** for Prisma.
+- **Build:** Nixpacks runs `npm ci` + `npm run build`. TypeScript, Tailwind, PostCSS, ESLint, `dotenv` (for `prisma.config.ts`), and `@types/*` are in **`dependencies`** so `npm ci --omit=dev` (typical on PaaS) still installs everything needed for `postinstall` / `prisma generate` and `next build`.
 - **Start:** `npx prisma migrate deploy && npm run start`.
 
-`package.json` **`engines.node`** is `>=22 <23`. If the build uses an older Node, set **`NIXPACKS_NODE_VERSION=22`** on the Railway service.
+`package.json` **`engines.node`** is `>=20`. For Node 22 explicitly, set **`NIXPACKS_NODE_VERSION=22`** on the Railway service.
+
+### Deploy failed?
+
+- **Build errors about TypeScript / tailwind / postcss / dotenv:** use the latest `package.json` from `main` (build tools must be in `dependencies`, not only `devDependencies`).
+- **`DATABASE_URL`:** must be set on the **web** service before `prisma migrate deploy` runs at start (reference the Postgres plugin’s variable).
+- **`NEXT_PUBLIC_APP_URL`:** must be your real `https://…` Railway URL (no trailing slash); mismatches break OAuth redirects.
 
 First deploy applies migrations; ensure `DATABASE_URL` is available before the start command runs (it is if referenced on the same service).
 
