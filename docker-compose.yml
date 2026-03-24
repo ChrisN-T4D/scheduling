@@ -16,7 +16,9 @@ services:
       retries: 10
 
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.compose
     ports:
       - "3000:3000"
     env_file:

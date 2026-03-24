@@ -2,8 +2,8 @@
 # Link Postgres to this service and set DATABASE_URL (reference ${{Postgres.DATABASE_URL}}).
 
 [build]
-builder = "NIXPACKS"
-# Optional: set NIXPACKS_NODE_VERSION=22 on the service if the build uses an older Node.
+builder = "RAILPACK"
+# Node version: see railpack.json (packages.node) or package.json engines.
 
 [deploy]
 startCommand = "sh -c 'npx prisma migrate deploy && npm run start'"

@@ -25,7 +25,7 @@
 ## Ongoing hygiene
 
 - Run **`npm audit`** regularly; apply patches for transitive vulnerabilities when practical.
-- Keep **Node** and **dependencies** updated (`package.json` `engines` helps Railway/Nixpacks pick a sane Node version).
+- Keep **Node** and **dependencies** updated (`package.json` `engines` and `railpack.json` help Railway’s Railpack builder pick a sane Node version).
 - Use **HTTPS only** in production (Railway provides TLS); HSTS is enabled in production via `next.config.ts`.
 
 ## Reporting
