@@ -1,28 +1,50 @@
+/* eslint-disable react-hooks/set-state-in-effect -- simple timeout reset for hidden admin trigger */
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const router = useRouter();
+  const [titleClicks, setTitleClicks] = useState(0);
+
+  useEffect(() => {
+    if (titleClicks === 0) return;
+    const t = setTimeout(() => setTitleClicks(0), 3500);
+    return () => clearTimeout(t);
+  }, [titleClicks]);
+
+  function onTitleClick() {
+    const next = titleClicks + 1;
+    if (next >= 5) {
+      setTitleClicks(0);
+      router.push("/admin");
+      return;
+    }
+    setTitleClicks(next);
+  }
+
   return (
-    <div className="mx-auto flex min-h-full max-w-lg flex-col justify-center gap-8 px-6 py-16">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
+    <div className="mx-auto flex min-h-full max-w-2xl flex-col justify-center px-6 py-16">
+      <div className="rounded-2xl border border-[#c8102e]/30 bg-white p-8 text-center shadow-sm dark:bg-zinc-950">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[#c8102e]">
+          Northwestern Oklahoma State University
+        </p>
+        <h1
+          className="mt-2 cursor-pointer text-3xl font-semibold tracking-tight text-[#c8102e]"
+          onClick={onTitleClick}
+        >
           Scheduling
         </h1>
-        <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-          Book a session from your available times. Host tools live in admin.
+        <p className="mt-3 text-zinc-700 dark:text-zinc-300">
+          Book a meeting from available times.
         </p>
-      </div>
-      <div className="flex flex-col gap-3 sm:flex-row">
         <Link
           href="/book"
-          className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-4 py-3 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+          className="mx-auto mt-8 inline-flex items-center justify-center rounded-lg bg-[#c8102e] px-6 py-3 text-sm font-medium text-white hover:bg-[#a30f27]"
         >
           Book a time
-        </Link>
-        <Link
-          href="/admin"
-          className="inline-flex items-center justify-center rounded-lg border border-zinc-300 px-4 py-3 text-sm font-medium hover:bg-zinc-50 dark:border-zinc-600 dark:hover:bg-zinc-900"
-        >
-          Admin
         </Link>
       </div>
     </div>
