@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { adminUnauthorizedResponse } from "@/lib/admin-guard";
 import { ensureGlobalSettings } from "@/lib/settings";
 import { isMicrosoftConnected } from "@/lib/microsoft-graph";
+import { getEnv } from "@/lib/env";
 import { z } from "zod";
 
 const patchSchema = z.object({
@@ -15,11 +16,16 @@ export async function GET() {
   const denied = await adminUnauthorizedResponse();
   if (denied) return denied;
   await ensureGlobalSettings();
+  const env = getEnv();
   const settings = await prisma.globalSettings.findUniqueOrThrow({
     where: { id: 1 },
   });
   const microsoftConnected = await isMicrosoftConnected();
-  return NextResponse.json({ settings, microsoftConnected });
+  return NextResponse.json({
+    settings,
+    microsoftConnected,
+    busyFeedConfigured: Boolean(env.OUTLOOK_ICS_URL),
+  });
 }
 
 export async function PATCH(request: Request) {

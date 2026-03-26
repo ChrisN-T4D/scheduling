@@ -18,18 +18,32 @@ type Rule = {
   endMinute: number;
 };
 
+type CalendarEvent = {
+  id: string;
+  source: "ics" | "booking";
+  title: string;
+  start: string;
+  end: string;
+  studentName?: string;
+  studentEmail?: string;
+  meetingUrl?: string;
+};
+
 export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [authed, setAuthed] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [microsoftConnected, setMicrosoftConnected] = useState(false);
+  const [busyFeedConfigured, setBusyFeedConfigured] = useState(false);
   const [rules, setRules] = useState<Rule[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   const [tz, setTz] = useState("");
   const [slotM, setSlotM] = useState(30);
   const [bufM, setBufM] = useState(0);
+  const [calendarStart, setCalendarStart] = useState(() => startOfDay(new Date()));
 
   const [newDay, setNewDay] = useState(1);
   const [newStart, setNewStart] = useState("09:00");
@@ -37,12 +51,19 @@ export default function AdminPage() {
 
   const load = useCallback(async () => {
     setErr(null);
+    const calendarEnd = new Date(calendarStart);
+    calendarEnd.setDate(calendarEnd.getDate() + 7);
+
     try {
-      const [sRes, rRes] = await Promise.all([
+      const [sRes, rRes, cRes] = await Promise.all([
         fetch("/api/admin/settings", { credentials: "include" }),
         fetch("/api/admin/rules", { credentials: "include" }),
+        fetch(
+          `/api/admin/calendar?from=${encodeURIComponent(calendarStart.toISOString())}&to=${encodeURIComponent(calendarEnd.toISOString())}`,
+          { credentials: "include" },
+        ),
       ]);
-      if (sRes.status === 401 || rRes.status === 401) {
+      if (sRes.status === 401 || rRes.status === 401 || cRes.status === 401) {
         setAuthed(false);
         return;
       }
@@ -54,21 +75,34 @@ export default function AdminPage() {
         setErr(await rRes.text());
         return;
       }
+      if (!cRes.ok) {
+        setErr(await cRes.text());
+        return;
+      }
       setAuthed(true);
       const sJson = (await sRes.json()) as {
         settings: Settings;
         microsoftConnected: boolean;
+        busyFeedConfigured?: boolean;
       };
       const rJson = (await rRes.json()) as { rules: Rule[] };
+      const cJson = (await cRes.json()) as {
+        events: CalendarEvent[];
+        busyFeedConfigured?: boolean;
+      };
       setMicrosoftConnected(sJson.microsoftConnected);
+      setBusyFeedConfigured(
+        (sJson.busyFeedConfigured ?? cJson.busyFeedConfigured) === true,
+      );
       setRules(rJson.rules);
+      setCalendarEvents(cJson.events ?? []);
       setTz(sJson.settings.timezone);
       setSlotM(sJson.settings.slotMinutes);
       setBufM(sJson.settings.bufferMinutes);
     } catch {
       setErr("Failed to load");
     }
-  }, []);
+  }, [calendarStart]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot API bootstrap into local state
@@ -243,18 +277,23 @@ export default function AdminPage() {
       )}
 
       <section className="mt-10 space-y-3">
-        <h2 className="text-lg font-medium">Microsoft 365</h2>
+        <h2 className="text-lg font-medium">Busy Feed</h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          {microsoftConnected
-            ? "Connected — calendar busy times are used for availability."
-            : "Not connected — connect to block slots when you are busy."}
+          {busyFeedConfigured
+            ? "Connected — ICS busy times are used for availability."
+            : "Not connected — set OUTLOOK_ICS_URL to block slots when you are busy."}
         </p>
+        {microsoftConnected ? (
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Microsoft OAuth is still connected, but availability now uses the ICS feed.
+          </p>
+        ) : null}
         <div className="flex flex-wrap gap-2">
           <a
             href="/api/auth/microsoft/start"
-            className="inline-flex rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
+            className="inline-flex rounded-lg border border-zinc-300 px-4 py-2 text-sm dark:border-zinc-600"
           >
-            Connect Microsoft
+            Connect Microsoft (optional)
           </a>
           {microsoftConnected && (
             <button
@@ -266,6 +305,81 @@ export default function AdminPage() {
             </button>
           )}
         </div>
+      </section>
+
+      <section className="mt-10">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-medium">Calendar (ICS + Bookings)</h2>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setCalendarStart((d) => addDays(d, -7))
+              }
+              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-600"
+            >
+              Prev 7d
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setCalendarStart((d) => addDays(d, 7))
+              }
+              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-600"
+            >
+              Next 7d
+            </button>
+          </div>
+        </div>
+        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+          {formatRangeLabel(calendarStart)} ({tz || "UTC"})
+        </p>
+        {calendarEvents.length === 0 ? (
+          <p className="mt-4 rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-500 dark:border-zinc-700">
+            No events in this range.
+          </p>
+        ) : (
+          <ul className="mt-4 space-y-2">
+            {calendarEvents.map((ev) => (
+              <li
+                key={ev.id}
+                className="rounded-md border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium">{ev.title}</span>
+                  <span
+                    className={`rounded px-2 py-0.5 text-xs ${
+                      ev.source === "booking"
+                        ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                        : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                    }`}
+                  >
+                    {ev.source === "booking" ? "Booking" : "ICS busy"}
+                  </span>
+                </div>
+                <div className="mt-1 text-zinc-600 dark:text-zinc-300">
+                  {fmtDateTime(ev.start, tz)} - {fmtDateTime(ev.end, tz)}
+                </div>
+                {ev.studentName || ev.studentEmail ? (
+                  <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    {ev.studentName ?? "Student"}
+                    {ev.studentEmail ? ` (${ev.studentEmail})` : ""}
+                  </div>
+                ) : null}
+                {ev.meetingUrl ? (
+                  <a
+                    href={ev.meetingUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1 inline-block text-xs text-blue-600 underline dark:text-blue-400"
+                  >
+                    Open meeting link
+                  </a>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="mt-10">
@@ -386,6 +500,40 @@ function fmtMin(m: number): string {
   const h = Math.floor(m / 60);
   const min = m % 60;
   return `${h}:${min.toString().padStart(2, "0")}`;
+}
+
+function startOfDay(d: Date): Date {
+  const out = new Date(d);
+  out.setHours(0, 0, 0, 0);
+  return out;
+}
+
+function addDays(d: Date, days: number): Date {
+  const out = new Date(d);
+  out.setDate(out.getDate() + days);
+  return out;
+}
+
+function formatRangeLabel(start: Date): string {
+  const end = addDays(start, 6);
+  const fmt = new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  return `${fmt.format(start)} - ${fmt.format(end)}`;
+}
+
+function fmtDateTime(iso: string, timeZone: string): string {
+  const d = new Date(iso);
+  return new Intl.DateTimeFormat(undefined, {
+    timeZone: timeZone || "UTC",
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(d);
 }
 
 function safeDecode(s: string): string {
