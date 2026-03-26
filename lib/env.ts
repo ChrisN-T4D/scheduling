@@ -28,9 +28,16 @@ const schema = z.object({
       }
     }),
   ADMIN_SECRET: z.string().min(8),
+  MEETING_ROOM_URL: z
+    .string()
+    .url()
+    .optional(),
   MICROSOFT_CLIENT_ID: z.string().optional(),
   MICROSOFT_CLIENT_SECRET: z.string().optional(),
   MICROSOFT_TENANT_ID: z.string().default("common"),
+  GOOGLE_CLIENT_EMAIL: z.string().optional(),
+  GOOGLE_PRIVATE_KEY: z.string().optional(),
+  GOOGLE_CALENDAR_ID: z.string().optional(),
   ZOOM_ACCOUNT_ID: z.string().optional(),
   ZOOM_CLIENT_ID: z.string().optional(),
   ZOOM_CLIENT_SECRET: z.string().optional(),
@@ -71,4 +78,26 @@ export function requireZoomConfig() {
     clientId: e.ZOOM_CLIENT_ID,
     clientSecret: e.ZOOM_CLIENT_SECRET,
   };
+}
+
+export function requireGoogleCalendarConfig() {
+  const e = getEnv();
+  if (!e.GOOGLE_CLIENT_EMAIL || !e.GOOGLE_PRIVATE_KEY || !e.GOOGLE_CALENDAR_ID) {
+    throw new Error(
+      "Google Calendar env vars missing: GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY, GOOGLE_CALENDAR_ID",
+    );
+  }
+  return {
+    clientEmail: e.GOOGLE_CLIENT_EMAIL,
+    privateKey: e.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+    calendarId: e.GOOGLE_CALENDAR_ID,
+  };
+}
+
+export function requireMeetingRoomUrl() {
+  const e = getEnv();
+  if (!e.MEETING_ROOM_URL) {
+    throw new Error("MEETING_ROOM_URL is not set");
+  }
+  return e.MEETING_ROOM_URL;
 }

@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import {
-  createCalendarEventWithZoom,
-  fetchCalendarBusy,
-} from "@/lib/microsoft-graph";
-import { createZoomMeeting, deleteZoomMeeting } from "@/lib/zoom";
+import { fetchCalendarBusy } from "@/lib/microsoft-graph";
+import { createGoogleCalendarEvent } from "@/lib/google-calendar";
+import { requireMeetingRoomUrl } from "@/lib/env";
 import { computeAvailableSlots } from "@/lib/slots";
 import { ensureDefaultWeeklyRules, ensureGlobalSettings } from "@/lib/settings";
 import { slotAdvisoryKeys } from "@/lib/booking-lock";
@@ -24,6 +22,7 @@ const BOOK_WINDOW_MS = 15 * 60 * 1000;
 const BOOK_MAX = 20;
 
 export async function POST(request: Request) {
+  const meetingRoomUrl = requireMeetingRoomUrl();
   const ip = getClientIp(request);
   if (
     !allowRateLimit({
@@ -115,7 +114,6 @@ export async function POST(request: Request) {
   }
 
   let reservedId: string | null = null;
-  let zoomId: string | null = null;
 
   try {
     const booking = await prisma.$transaction(
@@ -153,50 +151,30 @@ export async function POST(request: Request) {
     );
     reservedId = booking.id;
 
-    const meeting = await createZoomMeeting({
-      topic: `Session — ${parsed.data.studentName}`,
-      startUtc,
-      durationMinutes: Math.round(
-        (endUtc.getTime() - startUtc.getTime()) / 60_000,
-      ),
-      agenda: parsed.data.notes,
-    });
-    zoomId = meeting.id;
-
-    const htmlBody = `
-<p>Hi ${escapeHtml(parsed.data.studentName)},</p>
-<p>Your scheduled session is confirmed.</p>
-<p><strong>Join Zoom:</strong> <a href="${meeting.join_url}">${meeting.join_url}</a></p>
-${parsed.data.notes ? `<p><strong>Notes:</strong> ${escapeHtml(parsed.data.notes)}</p>` : ""}
-`;
-    const graphEventId = await createCalendarEventWithZoom({
-      subject: `Session — ${parsed.data.studentName}`,
+    const googleEventId = await createGoogleCalendarEvent({
+      summary: `Session — ${parsed.data.studentName}`,
       startUtc,
       endUtc,
       studentEmail: parsed.data.studentEmail,
       studentName: parsed.data.studentName,
-      zoomJoinUrl: meeting.join_url,
-      htmlBody,
+      meetingUrl: meetingRoomUrl,
+      notes: parsed.data.notes,
     });
 
     await prisma.booking.update({
       where: { id: booking.id },
       data: {
-        zoomMeetingId: meeting.id,
-        zoomJoinUrl: meeting.join_url,
-        graphEventId,
+        zoomJoinUrl: meetingRoomUrl,
+        graphEventId: googleEventId,
       },
     });
 
     return NextResponse.json({
       ok: true,
       bookingId: booking.id,
-      zoomJoinUrl: meeting.join_url,
+      meetingUrl: meetingRoomUrl,
     });
   } catch (e) {
-    if (zoomId) {
-      await deleteZoomMeeting(zoomId);
-    }
     if (reservedId) {
       await prisma.booking.delete({ where: { id: reservedId } }).catch(() => {
         /* ignore */
@@ -212,12 +190,4 @@ ${parsed.data.notes ? `<p><strong>Notes:</strong> ${escapeHtml(parsed.data.notes
     console.error("Book failed:", e);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }

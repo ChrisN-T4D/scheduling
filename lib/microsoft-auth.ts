@@ -3,11 +3,7 @@ import { requireMicrosoftConfig } from "@/lib/env";
 
 const SCOPES = [
   "offline_access",
-  "openid",
-  "profile",
-  "https://graph.microsoft.com/User.Read",
   "https://graph.microsoft.com/Calendars.Read",
-  "https://graph.microsoft.com/Calendars.ReadWrite",
 ].join(" ");
 
 function base64url(buf: Buffer): string {

@@ -22,10 +22,13 @@ Set these on the **web** service (same names as [`.env.example`](../.env.example
 | `NEXT_PUBLIC_APP_URL` | Your public URL **without** a trailing slash, e.g. `https://your-app.up.railway.app`. |
 | `TOKEN_ENCRYPTION_KEY` | Base64, **exactly 32 bytes** when decoded. |
 | `ADMIN_SECRET` | Strong password (min 8 chars). |
+| `MEETING_ROOM_URL` | Constant room link to include in bookings/events. |
 | `MICROSOFT_CLIENT_ID` | Entra app client ID. |
 | `MICROSOFT_TENANT_ID` | `common` or your tenant ID. |
 | `MICROSOFT_CLIENT_SECRET` | Optional (confidential client). |
-| `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET` | Zoom Server-to-Server OAuth app. |
+| `GOOGLE_CLIENT_EMAIL` | Service account email with calendar write access. |
+| `GOOGLE_PRIVATE_KEY` | Service account private key (single-line, `\n` escaped). |
+| `GOOGLE_CALENDAR_ID` | Target Google calendar ID (`primary` or explicit id). |
 
 Railway sets **`PORT`** automatically; Next.js uses it. You do not need to set `PORT` manually.
 

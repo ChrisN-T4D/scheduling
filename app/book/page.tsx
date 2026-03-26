@@ -25,7 +25,8 @@ export default function BookPage() {
   const [studentEmail, setStudentEmail] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [doneUrl, setDoneUrl] = useState<string | null>(null);
+  const [isDone, setIsDone] = useState(false);
+  const [meetingUrl, setMeetingUrl] = useState<string | null>(null);
 
   const [range, setRange] = useState<{ from: string; to: string } | null>(
     null,
@@ -103,13 +104,14 @@ export default function BookPage() {
       });
       const data = (await res.json()) as {
         error?: string;
-        zoomJoinUrl?: string;
+        meetingUrl?: string;
       };
       if (!res.ok) {
         setError(data.error ?? "Booking failed");
         return;
       }
-      setDoneUrl(data.zoomJoinUrl ?? null);
+      setIsDone(true);
+      setMeetingUrl(data.meetingUrl ?? null);
       setSelected(null);
       setStudentName("");
       setStudentEmail("");
@@ -122,24 +124,30 @@ export default function BookPage() {
     }
   }
 
-  if (doneUrl) {
+  if (isDone) {
     return (
       <div className="mx-auto max-w-lg px-6 py-16">
         <h1 className="text-xl font-semibold">You&apos;re booked</h1>
         <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-          Check your email for the calendar invite. You can join the Zoom
-          meeting here:
+          Check your email for the calendar invite and event details.
         </p>
-        <a
-          href={doneUrl}
-          className="mt-4 inline-block text-sm font-medium text-blue-600 underline dark:text-blue-400"
-        >
-          {doneUrl}
-        </a>
+        {meetingUrl ? (
+          <a
+            href={meetingUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-block text-sm font-medium text-blue-600 underline dark:text-blue-400"
+          >
+            Open meeting room
+          </a>
+        ) : null}
         <div className="mt-8">
           <button
             type="button"
-            onClick={() => setDoneUrl(null)}
+            onClick={() => {
+              setIsDone(false);
+              setMeetingUrl(null);
+            }}
             className="text-sm text-zinc-600 underline dark:text-zinc-400"
           >
             Book another

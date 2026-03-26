@@ -1,13 +1,13 @@
 # Scheduling
 
-Students pick open time slots from your **weekly rules**, minus **Microsoft 365** busy time and existing bookings. Each booking creates a **Zoom** meeting and an **Outlook/Graph** event with the student as an attendee (calendar invite email).
+Students pick open time slots from your **weekly rules**, minus **Microsoft 365** busy time and existing bookings. Each booking writes an event to **Google Calendar** and invites the student.
 
 ## Stack
 
 - Next.js (App Router) + TypeScript
 - PostgreSQL + Prisma 7 (`@prisma/adapter-pg`)
 - Microsoft identity (PKCE) + Microsoft Graph
-- Zoom **Server-to-Server OAuth** (account credentials)
+- Google Calendar API (service account write access)
 
 ## Local development
 
@@ -42,13 +42,16 @@ Students pick open time slots from your **weekly rules**, minus **Microsoft 365*
 
 2. **Authentication** → allow public client flows if you are not using a client secret (optional).
 
-3. **API permissions** (delegated): `User.Read`, `Calendars.Read`, `Calendars.ReadWrite`, `offline_access`, plus openid/profile.
+3. **API permissions** (delegated): `Calendars.Read`, `offline_access`.
 
 4. Put **Application (client) ID** in `MICROSOFT_CLIENT_ID`. Use `MICROSOFT_TENANT_ID=common` or your tenant ID. Add **client secret** in `MICROSOFT_CLIENT_SECRET` if you registered a confidential client.
 
-### Zoom
+### Google Calendar
 
-Create a **Server-to-Server OAuth** app in the Zoom Marketplace. Use **Account ID**, **Client ID**, and **Client Secret** in `.env`.
+1. Create a Google Cloud service account and enable the Google Calendar API.
+2. Share your target calendar with `GOOGLE_CLIENT_EMAIL` and grant **Make changes to events**.
+3. Put `GOOGLE_CLIENT_EMAIL`, `GOOGLE_PRIVATE_KEY` (single line with `\n` escapes), and `GOOGLE_CALENDAR_ID` in `.env`.
+4. Set `MEETING_ROOM_URL` to your constant room link; this is included in booking confirmations and Google events.
 
 ## Railway
 
@@ -58,18 +61,18 @@ See **[docs/RAILWAY.md](docs/RAILWAY.md)** for deploy steps (Postgres plugin, `D
 
 ```bash
 cp .env.example .env
-# edit .env: TOKEN_ENCRYPTION_KEY, ADMIN_SECRET, NEXT_PUBLIC_APP_URL, Zoom + optional Microsoft
+# edit .env: TOKEN_ENCRYPTION_KEY, ADMIN_SECRET, MEETING_ROOM_URL, NEXT_PUBLIC_APP_URL, Microsoft + Google Calendar vars
 docker compose up --build
 ```
 
-The web container runs `prisma migrate deploy` before `npm run start`. Ensure `.env` includes all required variables (Microsoft/Zoom can be added later; booking requires both).
+The web container runs `prisma migrate deploy` before `npm run start`. Ensure `.env` includes all required variables (Microsoft availability + Google Calendar write).
 
 ## Project layout
 
 - [`app/book`](app/book) — public booking UI  
 - [`app/admin`](app/admin) — password-protected settings, Microsoft connect, weekly rules  
 - [`app/api`](app/api) — availability, book, OAuth callback, admin APIs  
-- [`lib`](lib) — Graph, Zoom, slot math, encryption, env  
+- [`lib`](lib) — Graph, Google Calendar, slot math, encryption, env  
 
 ## Security notes (summary)
 
@@ -78,7 +81,7 @@ The web container runs `prisma migrate deploy` before `npm run start`. Ensure `.
 - Use HTTPS in production; OAuth redirects must match Entra registration exactly.
 - Rotate `ADMIN_SECRET` and client secrets if exposed.
 - **Rate limits** (in-memory, per instance): availability, book, and **admin login**. Use a proxy or Redis for global limits if you scale out.
-- **Double-booking**: Postgres `pg_advisory_xact_lock` per slot before Zoom/Graph.
+- **Double-booking**: Postgres `pg_advisory_xact_lock` per slot before calendar writes.
 - Production adds **security headers** (HSTS, frame denial, nosniff, etc.) via `next.config.ts`.
 
 ## Entra redirect URI checklist
