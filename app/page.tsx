@@ -32,7 +32,7 @@ export default function Home() {
           Northwestern Oklahoma State University
         </p>
         <h1
-          className="mt-2 cursor-pointer text-3xl font-semibold tracking-tight text-[#c8102e]"
+          className="mt-2 text-3xl font-semibold tracking-tight text-[#c8102e]"
           onClick={onTitleClick}
         >
           Scheduling for Dr. Christopher Neu

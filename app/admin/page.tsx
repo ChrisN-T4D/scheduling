@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { DateTime } from "luxon";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const TIMEZONES = getTimezones();
 
 type Settings = {
   timezone: string;
@@ -353,11 +354,20 @@ export default function AdminPage() {
         <form onSubmit={saveSettings} className="mt-4 space-y-4">
           <div>
             <label className="block text-sm font-medium">Timezone (IANA)</label>
-            <input
+            <select
               className="mt-1 w-full rounded-md border border-zinc-300 bg-transparent px-3 py-2 text-sm dark:border-zinc-600"
               value={tz}
               onChange={(e) => setTz(e.target.value)}
-            />
+            >
+              {!TIMEZONES.includes(tz) && tz ? (
+                <option value={tz}>{tz}</option>
+              ) : null}
+              {TIMEZONES.map((zone) => (
+                <option key={zone} value={zone}>
+                  {zone}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium">Slot length (minutes)</label>
@@ -496,6 +506,24 @@ function safeDecode(s: string): string {
   } catch {
     return s;
   }
+}
+
+function getTimezones(): string[] {
+  try {
+    // modern browsers / runtimes
+    if (typeof Intl.supportedValuesOf === "function") {
+      return Intl.supportedValuesOf("timeZone");
+    }
+  } catch {
+    // ignore and use fallback
+  }
+  return [
+    "America/New_York",
+    "America/Chicago",
+    "America/Denver",
+    "America/Los_Angeles",
+    "UTC",
+  ];
 }
 
 type CalendarSegment = {
