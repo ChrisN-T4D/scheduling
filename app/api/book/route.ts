@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { fetchCalendarBusy } from "@/lib/microsoft-graph";
+import { fetchBusyFromIcs } from "@/lib/ics-busy";
 import { createGoogleCalendarEvent } from "@/lib/google-calendar";
-import { requireMeetingRoomUrl } from "@/lib/env";
+import { getEnv, requireMeetingRoomUrl } from "@/lib/env";
 import { computeAvailableSlots } from "@/lib/slots";
 import { ensureDefaultWeeklyRules, ensureGlobalSettings } from "@/lib/settings";
 import { slotAdvisoryKeys } from "@/lib/booking-lock";
@@ -23,6 +23,8 @@ const BOOK_MAX = 20;
 
 export async function POST(request: Request) {
   const meetingRoomUrl = requireMeetingRoomUrl();
+  const env = getEnv();
+  const icsUrl = env.OUTLOOK_ICS_URL;
   const ip = getClientIp(request);
   if (
     !allowRateLimit({
@@ -61,16 +63,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid slot times" }, { status: 400 });
   }
 
-  const ms = await prisma.storedCredential.findUnique({
-    where: { provider: "microsoft" },
-  });
-  if (!ms) {
-    return NextResponse.json(
-      { error: "Scheduling is not configured (Microsoft calendar)." },
-      { status: 503 },
-    );
-  }
-
   await ensureGlobalSettings();
   await ensureDefaultWeeklyRules();
   const settings = await prisma.globalSettings.findUniqueOrThrow({
@@ -79,10 +71,13 @@ export async function POST(request: Request) {
   const rules = await prisma.weeklyRule.findMany();
 
   const padMs = 60_000;
-  const busy = await fetchCalendarBusy({
-    startUtc: new Date(startUtc.getTime() - padMs),
-    endUtc: new Date(endUtc.getTime() + padMs),
-  });
+  const busy = icsUrl
+    ? await fetchBusyFromIcs({
+        icsUrl,
+        startUtc: new Date(startUtc.getTime() - padMs),
+        endUtc: new Date(endUtc.getTime() + padMs),
+      })
+    : [];
   const bookings = await prisma.booking.findMany({
     where: {
       AND: [{ startUtc: { lt: endUtc } }, { endUtc: { gt: startUtc } }],

@@ -27,6 +27,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "googleapis": "^171.4.0",
+    "ical.js": "^2.2.1",
     "jose": "^6.2.2",
     "luxon": "^3.7.2",
     "next": "16.2.1",

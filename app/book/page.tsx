@@ -17,7 +17,7 @@ export default function BookPage() {
   const [timezone, setTimezone] = useState("UTC");
   const [slotMinutes, setSlotMinutes] = useState(30);
   const [slots, setSlots] = useState<Slot[]>([]);
-  const [microsoftConnected, setMicrosoftConnected] = useState(true);
+  const [busyFeedConfigured, setBusyFeedConfigured] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Slot | null>(null);
@@ -49,7 +49,7 @@ export default function BookPage() {
         slots?: Slot[];
         timezone?: string;
         slotMinutes?: number;
-        microsoftConnected?: boolean;
+        busyFeedConfigured?: boolean;
       };
       if (!res.ok) {
         setError(data.error ?? "Failed to load availability");
@@ -59,7 +59,7 @@ export default function BookPage() {
       setSlots(data.slots ?? []);
       if (data.timezone) setTimezone(data.timezone);
       if (data.slotMinutes != null) setSlotMinutes(data.slotMinutes);
-      setMicrosoftConnected(data.microsoftConnected !== false);
+      setBusyFeedConfigured(data.busyFeedConfigured === true);
     } catch {
       setError("Network error");
       setSlots([]);
@@ -170,10 +170,10 @@ export default function BookPage() {
         Times shown in your host&apos;s timezone ({timezone}).{" "}
         {slotMinutes}-minute slots.
       </p>
-      {!microsoftConnected && (
+      {!busyFeedConfigured && (
         <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
-          Microsoft calendar is not connected yet — shown times use your weekly
-          rules only (no busy-time blocking).
+          Busy calendar feed is not configured — shown times use your weekly
+          rules only.
         </p>
       )}
       {error && (

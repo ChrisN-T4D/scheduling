@@ -1,6 +1,6 @@
 # Scheduling
 
-Students pick open time slots from your **weekly rules**, minus **Microsoft 365** busy time and existing bookings. Each booking writes an event to **Google Calendar** and invites the student.
+Students pick open time slots from your **weekly rules**, minus busy blocks from an **Outlook ICS feed** (optional) and existing bookings. Each booking writes an event to **Google Calendar** and invites the student.
 
 ## Stack
 
@@ -34,7 +34,7 @@ Students pick open time slots from your **weekly rules**, minus **Microsoft 365*
 
 5. Open [http://localhost:3000](http://localhost:3000) — **Admin** uses `ADMIN_SECRET`; **Book** is public.
 
-### Microsoft Entra (Azure AD)
+### Optional: Microsoft Entra (Azure AD)
 
 1. Register an app → add redirect URI:  
    `{NEXT_PUBLIC_APP_URL}/api/auth/microsoft/callback`  
@@ -45,6 +45,8 @@ Students pick open time slots from your **weekly rules**, minus **Microsoft 365*
 3. **API permissions** (delegated): `Calendars.Read`, `offline_access`.
 
 4. Put **Application (client) ID** in `MICROSOFT_CLIENT_ID`. Use `MICROSOFT_TENANT_ID=common` or your tenant ID. Add **client secret** in `MICROSOFT_CLIENT_SECRET` if you registered a confidential client.
+
+If tenant consent blocks Microsoft OAuth, set `OUTLOOK_ICS_URL` instead to use a published Outlook calendar feed for busy-time blocking.
 
 ### Google Calendar
 

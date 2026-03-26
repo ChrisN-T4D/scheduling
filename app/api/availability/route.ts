@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { fetchCalendarBusy } from "@/lib/microsoft-graph";
+import { fetchBusyFromIcs } from "@/lib/ics-busy";
+import { getEnv } from "@/lib/env";
 import { computeAvailableSlots } from "@/lib/slots";
 import { ensureDefaultWeeklyRules, ensureGlobalSettings } from "@/lib/settings";
 import { allowRateLimit, rateLimitRetryAfterSec } from "@/lib/rate-limit";
@@ -64,22 +65,22 @@ export async function GET(request: Request) {
   });
   const rules = await prisma.weeklyRule.findMany();
 
-  const ms = await prisma.storedCredential.findUnique({
-    where: { provider: "microsoft" },
-  });
+  const env = getEnv();
+  const icsUrl = env.OUTLOOK_ICS_URL;
   let busy: { start: Date; end: Date }[] = [];
-  if (ms) {
+  if (icsUrl) {
     try {
-      busy = await fetchCalendarBusy({
+      busy = await fetchBusyFromIcs({
+        icsUrl,
         startUtc: rangeStartUtc,
         endUtc: rangeEndUtc,
       });
     } catch (e) {
-      console.error("Calendar busy fetch failed:", e);
+      console.error("ICS busy fetch failed:", e);
       return NextResponse.json(
         {
           error:
-            "Could not load Microsoft calendar busy times. Reconnect in admin or try again.",
+            "Could not load busy times from ICS feed. Check OUTLOOK_ICS_URL or try again.",
         },
         { status: 503 },
       );
@@ -112,7 +113,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     timezone: settings.timezone,
     slotMinutes: settings.slotMinutes,
-    microsoftConnected: Boolean(ms),
+    busyFeedConfigured: Boolean(icsUrl),
     slots: slots.map((s) => ({
       start: s.start.toISOString(),
       end: s.end.toISOString(),

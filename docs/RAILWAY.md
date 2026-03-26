@@ -23,8 +23,9 @@ Set these on the **web** service (same names as [`.env.example`](../.env.example
 | `TOKEN_ENCRYPTION_KEY` | Base64, **exactly 32 bytes** when decoded. |
 | `ADMIN_SECRET` | Strong password (min 8 chars). |
 | `MEETING_ROOM_URL` | Constant room link to include in bookings/events. |
-| `MICROSOFT_CLIENT_ID` | Entra app client ID. |
-| `MICROSOFT_TENANT_ID` | `common` or your tenant ID. |
+| `OUTLOOK_ICS_URL` | Optional Outlook ICS feed URL for busy-time blocking. |
+| `MICROSOFT_CLIENT_ID` | Optional: Entra app client ID (if using OAuth instead of ICS). |
+| `MICROSOFT_TENANT_ID` | Optional: `common` or your tenant ID. |
 | `MICROSOFT_CLIENT_SECRET` | Optional (confidential client). |
 | `GOOGLE_CLIENT_EMAIL` | Service account email with calendar write access. |
 | `GOOGLE_PRIVATE_KEY` | Service account private key (single-line, `\n` escaped). |
