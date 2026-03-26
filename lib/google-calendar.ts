@@ -56,6 +56,10 @@ export async function createGoogleCalendarEvent(params: {
         },
         attendees: [
           {
+            email: "clneu@nwosu.edu",
+            displayName: "Dr. Christopher Neu",
+          },
+          {
             email: params.studentEmail,
             displayName: params.studentName,
           },
@@ -92,6 +96,12 @@ export async function createGoogleCalendarEvent(params: {
         dateTime: params.endUtc.toISOString(),
         timeZone: "UTC",
       },
+      attendees: [
+        {
+          email: "clneu@nwosu.edu",
+          displayName: "Dr. Christopher Neu",
+        },
+      ],
     },
   });
 

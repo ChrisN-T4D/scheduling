@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { adminUnauthorizedResponse } from "@/lib/admin-guard";
 import { fetchBusyFromIcs } from "@/lib/ics-busy";
+import { fetchBusyFromGoogle } from "@/lib/google-busy";
 import { getEnv } from "@/lib/env";
 
 const MAX_RANGE_MS = 31 * 24 * 60 * 60 * 1000;
@@ -38,8 +39,11 @@ export async function GET(request: Request) {
 
   const env = getEnv();
   const icsUrl = env.OUTLOOK_ICS_URL;
+  const useGoogleBusy =
+    Boolean(env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET) ||
+    Boolean(env.GOOGLE_CLIENT_EMAIL && env.GOOGLE_PRIVATE_KEY);
 
-  const [bookings, icsBusy] = await Promise.all([
+  const [bookings, icsBusy, googleBusy] = await Promise.all([
     prisma.booking.findMany({
       where: {
         AND: [
@@ -56,9 +60,22 @@ export async function GET(request: Request) {
           endUtc: rangeEndUtc,
         })
       : Promise.resolve([]),
+    useGoogleBusy
+      ? fetchBusyFromGoogle({
+          startUtc: rangeStartUtc,
+          endUtc: rangeEndUtc,
+        })
+      : Promise.resolve([]),
   ]);
 
   const events = [
+    ...googleBusy.map((b, i) => ({
+      id: `google-${b.start.toISOString()}-${i}`,
+      source: "ics" as const,
+      title: "Busy (Google calendar)",
+      start: b.start.toISOString(),
+      end: b.end.toISOString(),
+    })),
     ...icsBusy.map((b, i) => ({
       id: `ics-${b.start.toISOString()}-${i}`,
       source: "ics" as const,
@@ -79,7 +96,11 @@ export async function GET(request: Request) {
   ].sort((a, b) => a.start.localeCompare(b.start));
 
   return NextResponse.json({
-    busyFeedConfigured: Boolean(icsUrl),
+    busyFeedConfigured: Boolean(
+      icsUrl ||
+        (env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET) ||
+        (env.GOOGLE_CLIENT_EMAIL && env.GOOGLE_PRIVATE_KEY),
+    ),
     events,
   });
 }

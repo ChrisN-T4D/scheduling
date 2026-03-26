@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { fetchBusyFromIcs } from "@/lib/ics-busy";
+import { fetchBusyFromGoogle } from "@/lib/google-busy";
 import { getEnv } from "@/lib/env";
 import { computeAvailableSlots } from "@/lib/slots";
 import { ensureDefaultWeeklyRules, ensureGlobalSettings } from "@/lib/settings";
@@ -82,23 +83,41 @@ export async function GET(request: Request) {
 
   const env = getEnv();
   const icsUrl = env.OUTLOOK_ICS_URL;
+  const useGoogleBusy =
+    Boolean(env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET) ||
+    Boolean(env.GOOGLE_CLIENT_EMAIL && env.GOOGLE_PRIVATE_KEY);
+
   let busy: { start: Date; end: Date }[] = [];
-  if (icsUrl) {
-    try {
-      busy = await fetchBusyFromIcs({
+  try {
+    if (icsUrl) {
+      const icsBusy = await fetchBusyFromIcs({
         icsUrl,
         startUtc: rangeStartUtc,
         endUtc: rangeEndUtc,
       });
+      busy.push(...icsBusy);
+    }
+  } catch (e) {
+    console.error("ICS busy fetch failed:", e);
+    return NextResponse.json(
+      {
+        error:
+          "Could not load busy times from ICS feed. Check OUTLOOK_ICS_URL or try again.",
+      },
+      { status: 503 },
+    );
+  }
+
+  if (useGoogleBusy) {
+    try {
+      const googleBusy = await fetchBusyFromGoogle({
+        startUtc: rangeStartUtc,
+        endUtc: rangeEndUtc,
+      });
+      busy.push(...googleBusy);
     } catch (e) {
-      console.error("ICS busy fetch failed:", e);
-      return NextResponse.json(
-        {
-          error:
-            "Could not load busy times from ICS feed. Check OUTLOOK_ICS_URL or try again.",
-        },
-        { status: 503 },
-      );
+      console.error("Google Calendar busy fetch failed:", e);
+      // If Google busy fails, we still return availability based on ICS + bookings
     }
   }
 
@@ -128,7 +147,11 @@ export async function GET(request: Request) {
   return NextResponse.json({
     timezone: settings.timezone,
     slotMinutes,
-    busyFeedConfigured: Boolean(icsUrl),
+    busyFeedConfigured: Boolean(
+      icsUrl ||
+        (env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET) ||
+        (env.GOOGLE_CLIENT_EMAIL && env.GOOGLE_PRIVATE_KEY),
+    ),
     slots: slots.map((s) => ({
       start: s.start.toISOString(),
       end: s.end.toISOString(),
