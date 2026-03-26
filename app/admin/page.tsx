@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { DateTime } from "luxon";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -339,46 +340,11 @@ export default function AdminPage() {
             No events in this range.
           </p>
         ) : (
-          <ul className="mt-4 space-y-2">
-            {calendarEvents.map((ev) => (
-              <li
-                key={ev.id}
-                className="rounded-md border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium">{ev.title}</span>
-                  <span
-                    className={`rounded px-2 py-0.5 text-xs ${
-                      ev.source === "booking"
-                        ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                        : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
-                    }`}
-                  >
-                    {ev.source === "booking" ? "Booking" : "ICS busy"}
-                  </span>
-                </div>
-                <div className="mt-1 text-zinc-600 dark:text-zinc-300">
-                  {fmtDateTime(ev.start, tz)} - {fmtDateTime(ev.end, tz)}
-                </div>
-                {ev.studentName || ev.studentEmail ? (
-                  <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                    {ev.studentName ?? "Student"}
-                    {ev.studentEmail ? ` (${ev.studentEmail})` : ""}
-                  </div>
-                ) : null}
-                {ev.meetingUrl ? (
-                  <a
-                    href={ev.meetingUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-1 inline-block text-xs text-blue-600 underline dark:text-blue-400"
-                  >
-                    Open meeting link
-                  </a>
-                ) : null}
-              </li>
-            ))}
-          </ul>
+          <WeekCalendar
+            events={calendarEvents}
+            weekStart={calendarStart}
+            timeZone={tz || "UTC"}
+          />
         )}
       </section>
 
@@ -524,22 +490,150 @@ function formatRangeLabel(start: Date): string {
   return `${fmt.format(start)} - ${fmt.format(end)}`;
 }
 
-function fmtDateTime(iso: string, timeZone: string): string {
-  const d = new Date(iso);
-  return new Intl.DateTimeFormat(undefined, {
-    timeZone: timeZone || "UTC",
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(d);
-}
-
 function safeDecode(s: string): string {
   try {
     return decodeURIComponent(s);
   } catch {
     return s;
   }
+}
+
+type CalendarSegment = {
+  id: string;
+  dayIndex: number;
+  topPx: number;
+  heightPx: number;
+  source: "ics" | "booking";
+  title: string;
+  timeText: string;
+  meetingUrl?: string;
+};
+
+function WeekCalendar({
+  events,
+  weekStart,
+  timeZone,
+}: {
+  events: CalendarEvent[];
+  weekStart: Date;
+  timeZone: string;
+}) {
+  const hourPx = 44;
+  const totalHeight = hourPx * 24;
+  const start = DateTime.fromJSDate(weekStart, { zone: timeZone }).startOf("day");
+  const dayLabels = Array.from({ length: 7 }, (_, i) => {
+    const d = start.plus({ days: i });
+    return d.toFormat("ccc LLL d");
+  });
+  const segments = buildCalendarSegments(events, start, timeZone, hourPx);
+
+  return (
+    <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
+      <div className="min-w-[920px]">
+        <div className="grid grid-cols-[56px_repeat(7,minmax(0,1fr))] border-b border-zinc-200 dark:border-zinc-700">
+          <div className="px-2 py-2 text-xs text-zinc-500">Time</div>
+          {dayLabels.map((d) => (
+            <div key={d} className="border-l border-zinc-200 px-2 py-2 text-xs font-medium dark:border-zinc-700">
+              {d}
+            </div>
+          ))}
+        </div>
+        <div className="flex">
+          <div className="relative w-14 shrink-0 border-r border-zinc-200 dark:border-zinc-700" style={{ height: totalHeight }}>
+            {Array.from({ length: 24 }, (_, h) => (
+              <div
+                key={h}
+                className="absolute left-0 w-full px-1 text-[10px] text-zinc-500"
+                style={{ top: h * hourPx - 7 }}
+              >
+                {h.toString().padStart(2, "0")}:00
+              </div>
+            ))}
+          </div>
+          <div className="relative grid flex-1 grid-cols-7" style={{ height: totalHeight }}>
+            {Array.from({ length: 7 }, (_, d) => (
+              <div key={d} className="relative border-l border-zinc-200 dark:border-zinc-700">
+                {Array.from({ length: 24 }, (_, h) => (
+                  <div
+                    key={h}
+                    className="absolute left-0 right-0 border-t border-zinc-100 dark:border-zinc-800"
+                    style={{ top: h * hourPx }}
+                  />
+                ))}
+                {segments
+                  .filter((s) => s.dayIndex === d)
+                  .map((s) => (
+                    <div
+                      key={s.id}
+                      className={`absolute left-1 right-1 overflow-hidden rounded px-1.5 py-1 text-[10px] ${
+                        s.source === "booking"
+                          ? "bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100"
+                          : "bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100"
+                      }`}
+                      style={{ top: s.topPx, height: s.heightPx }}
+                      title={`${s.title} (${s.timeText})`}
+                    >
+                      <div className="truncate font-medium">{s.title}</div>
+                      <div className="truncate opacity-80">{s.timeText}</div>
+                      {s.meetingUrl ? (
+                        <a
+                          href={s.meetingUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="truncate underline"
+                        >
+                          link
+                        </a>
+                      ) : null}
+                    </div>
+                  ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function buildCalendarSegments(
+  events: CalendarEvent[],
+  weekStart: DateTime,
+  zone: string,
+  hourPx: number,
+): CalendarSegment[] {
+  const weekEnd = weekStart.plus({ days: 7 });
+  const out: CalendarSegment[] = [];
+  for (const ev of events) {
+    const start = DateTime.fromISO(ev.start, { zone: "utc" }).setZone(zone);
+    const end = DateTime.fromISO(ev.end, { zone: "utc" }).setZone(zone);
+    if (!start.isValid || !end.isValid || end <= weekStart || start >= weekEnd) continue;
+    const clippedStart = start < weekStart ? weekStart : start;
+    const clippedEnd = end > weekEnd ? weekEnd : end;
+    for (
+      let day = clippedStart.startOf("day");
+      day < clippedEnd;
+      day = day.plus({ days: 1 })
+    ) {
+      const dayEnd = day.plus({ days: 1 });
+      const segStart = clippedStart > day ? clippedStart : day;
+      const segEnd = clippedEnd < dayEnd ? clippedEnd : dayEnd;
+      if (segEnd <= segStart) continue;
+      const dayIndex = Math.floor(day.diff(weekStart, "days").days);
+      if (dayIndex < 0 || dayIndex > 6) continue;
+      const startMin = segStart.hour * 60 + segStart.minute;
+      const endMin = Math.max(startMin + 15, segEnd.hour * 60 + segEnd.minute);
+      out.push({
+        id: `${ev.id}-${dayIndex}-${startMin}`,
+        dayIndex,
+        topPx: (startMin / 60) * hourPx,
+        heightPx: Math.max(16, ((endMin - startMin) / 60) * hourPx),
+        source: ev.source,
+        title: ev.title,
+        timeText: `${segStart.toFormat("HH:mm")} - ${segEnd.toFormat("HH:mm")}`,
+        meetingUrl: ev.meetingUrl,
+      });
+    }
+  }
+  return out;
 }
