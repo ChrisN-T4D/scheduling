@@ -35,7 +35,7 @@ export default function Home() {
           className="mt-2 cursor-pointer text-3xl font-semibold tracking-tight text-[#c8102e]"
           onClick={onTitleClick}
         >
-          Scheduling
+          Scheduling for Dr. Christopher Neu
         </h1>
         <p className="mt-3 text-zinc-700 dark:text-zinc-300">
           Book a meeting from available times.

@@ -173,31 +173,7 @@ export default function BookPage() {
           {(durationMinutes ?? slotMinutes)}-minute slots.
         </p>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setMonthStart((d) => addMonths(d, -1));
-                setSelectedDateKey(null);
-                setSelected(null);
-              }}
-              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-600"
-            >
-              Prev month
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMonthStart((d) => addMonths(d, 1));
-                setSelectedDateKey(null);
-                setSelected(null);
-              }}
-              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-600"
-            >
-              Next month
-            </button>
-          </div>
+        <div className="mt-4">
           <label className="text-sm">
             Meeting length:
             <select
@@ -212,7 +188,33 @@ export default function BookPage() {
               ))}
             </select>
           </label>
-          <span className="text-sm text-zinc-600 dark:text-zinc-300">{monthLabel}</span>
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setMonthStart((d) => addMonths(d, -1));
+                setSelectedDateKey(null);
+                setSelected(null);
+              }}
+              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-600"
+            >
+              Prev month
+            </button>
+            <h2 className="text-center text-2xl font-semibold text-[#c8102e]">
+              {monthLabel}
+            </h2>
+            <button
+              type="button"
+              onClick={() => {
+                setMonthStart((d) => addMonths(d, 1));
+                setSelectedDateKey(null);
+                setSelected(null);
+              }}
+              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-600"
+            >
+              Next month
+            </button>
+          </div>
         </div>
 
         {!busyFeedConfigured && (
