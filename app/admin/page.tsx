@@ -44,6 +44,9 @@ export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [microsoftConnected, setMicrosoftConnected] = useState(false);
+  const [googleConnected, setGoogleConnected] = useState(false);
+  const [googleOAuthEnvConfigured, setGoogleOAuthEnvConfigured] =
+    useState(false);
   const [busyFeedConfigured, setBusyFeedConfigured] = useState(false);
   const [rules, setRules] = useState<Rule[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
@@ -93,6 +96,8 @@ export default function AdminPage() {
       const sJson = (await sRes.json()) as {
         settings: Settings;
         microsoftConnected: boolean;
+        googleConnected?: boolean;
+        googleOAuthEnvConfigured?: boolean;
         busyFeedConfigured?: boolean;
       };
       const rJson = (await rRes.json()) as { rules: Rule[] };
@@ -101,6 +106,8 @@ export default function AdminPage() {
         busyFeedConfigured?: boolean;
       };
       setMicrosoftConnected(sJson.microsoftConnected);
+      setGoogleConnected(sJson.googleConnected === true);
+      setGoogleOAuthEnvConfigured(sJson.googleOAuthEnvConfigured === true);
       setBusyFeedConfigured(
         (sJson.busyFeedConfigured ?? cJson.busyFeedConfigured) === true,
       );
@@ -125,8 +132,12 @@ export default function AdminPage() {
     const sp = new URLSearchParams(window.location.search);
     const msErr = sp.get("ms_error");
     const msOk = sp.get("ms_connected");
+    const gErr = sp.get("google_error");
+    const gOk = sp.get("google_connected");
     if (msErr) setErr(safeDecode(msErr));
+    if (gErr) setErr(safeDecode(gErr));
     if (msOk) setMsg("Microsoft account connected.");
+    if (gOk) setMsg("Google account connected — calendar invites enabled.");
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
@@ -215,6 +226,19 @@ export default function AdminPage() {
     await load();
   }
 
+  async function disconnectGoogle() {
+    const res = await fetch("/api/admin/google", {
+      method: "DELETE",
+      credentials: "include",
+    });
+    if (!res.ok) {
+      setErr(await res.text());
+      return;
+    }
+    setMsg("Google disconnected.");
+    await load();
+  }
+
   async function disconnectMs() {
     const res = await fetch("/api/admin/microsoft", {
       method: "DELETE",
@@ -285,6 +309,36 @@ export default function AdminPage() {
           {err}
         </p>
       )}
+
+      <section className="mt-10 space-y-3">
+        <h2 className="text-lg font-medium">Google Calendar</h2>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          {googleConnected
+            ? "Connected — new bookings create events on your calendar and email invites to the student (meeting link in location & description)."
+            : googleOAuthEnvConfigured
+              ? "Connect your Google account once so bookings send calendar invites from your Google identity."
+              : "Set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET in the environment, then connect here."}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {googleOAuthEnvConfigured && !googleConnected ? (
+            <a
+              href="/api/auth/google/start"
+              className="inline-flex rounded-lg border border-zinc-300 px-4 py-2 text-sm dark:border-zinc-600"
+            >
+              Connect Google
+            </a>
+          ) : null}
+          {googleConnected && (
+            <button
+              type="button"
+              onClick={() => void disconnectGoogle()}
+              className="inline-flex rounded-lg border border-zinc-300 px-4 py-2 text-sm dark:border-zinc-600"
+            >
+              Disconnect Google
+            </button>
+          )}
+        </div>
+      </section>
 
       <section className="mt-10 space-y-3">
         <h2 className="text-lg font-medium">Busy Feed</h2>

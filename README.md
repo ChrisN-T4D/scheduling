@@ -7,7 +7,7 @@ Students pick open time slots from your **weekly rules**, minus busy blocks from
 - Next.js (App Router) + TypeScript
 - PostgreSQL + Prisma 7 (`@prisma/adapter-pg`)
 - Microsoft identity (PKCE) + Microsoft Graph
-- Google Calendar API (service account write access)
+- Google Calendar API (OAuth for invites, or service-account fallback)
 
 ## Local development
 
@@ -50,10 +50,22 @@ If tenant consent blocks Microsoft OAuth, set `OUTLOOK_ICS_URL` instead to use a
 
 ### Google Calendar
 
-1. Create a Google Cloud service account and enable the Google Calendar API.
-2. Share your target calendar with `GOOGLE_CLIENT_EMAIL` and grant **Make changes to events**.
+**Recommended (email invites to students): OAuth**
+
+1. Enable **Google Calendar API** in Google Cloud.
+2. Create an **OAuth 2.0 Web client** and add redirect URI:  
+   `{NEXT_PUBLIC_APP_URL}/api/auth/google/callback`
+3. Put `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env`.
+4. Sign in to **Admin** → **Connect Google** once; the app stores an encrypted refresh token.
+5. Optional: `GOOGLE_CALENDAR_ID` (default `primary`) chooses which calendar receives events.
+
+**Fallback (no attendee emails): service account**
+
+1. Create a service account and enable the Google Calendar API.
+2. Share your target calendar with `GOOGLE_CLIENT_EMAIL` (**Make changes to events**).
 3. Put `GOOGLE_CLIENT_EMAIL`, `GOOGLE_PRIVATE_KEY` (single line with `\n` escapes), and `GOOGLE_CALENDAR_ID` in `.env`.
-4. Set `MEETING_ROOM_URL` to your constant room link; this is included in booking confirmations and Google events.
+
+Set `MEETING_ROOM_URL` to your constant room link; it is included in booking confirmations and Google events.
 
 ## Railway
 
@@ -72,25 +84,25 @@ The web container runs `prisma migrate deploy` before `npm run start`. Ensure `.
 ## Project layout
 
 - [`app/book`](app/book) — public booking UI  
-- [`app/admin`](app/admin) — password-protected settings, Microsoft connect, weekly rules  
+- [`app/admin`](app/admin) — password-protected settings, Google/Microsoft connect, weekly rules  
 - [`app/api`](app/api) — availability, book, OAuth callback, admin APIs  
 - [`lib`](lib) — Graph, Google Calendar, slot math, encryption, env  
 
 ## Security notes (summary)
 
 - Full write-up: **[docs/SECURITY.md](docs/SECURITY.md)**.
-- Never commit `.env`. `TOKEN_ENCRYPTION_KEY` must decode (base64) to **32 bytes**; it encrypts Microsoft refresh tokens at rest.
+- Never commit `.env`. `TOKEN_ENCRYPTION_KEY` must decode (base64) to **32 bytes**; it encrypts OAuth refresh tokens at rest (Microsoft and Google).
 - Use HTTPS in production; OAuth redirects must match Entra registration exactly.
 - Rotate `ADMIN_SECRET` and client secrets if exposed.
 - **Rate limits** (in-memory, per instance): availability, book, and **admin login**. Use a proxy or Redis for global limits if you scale out.
 - **Double-booking**: Postgres `pg_advisory_xact_lock` per slot before calendar writes.
 - Production adds **security headers** (HSTS, frame denial, nosniff, etc.) via `next.config.ts`.
 
-## Entra redirect URI checklist
+## OAuth redirect URI checklist
 
-| Environment | Redirect URI |
-|-------------|----------------|
-| Local | `http://localhost:3000/api/auth/microsoft/callback` |
-| Production | `https://YOUR_DOMAIN/api/auth/microsoft/callback` |
+| Provider | Local | Production |
+|----------|--------|------------|
+| Microsoft | `http://localhost:3000/api/auth/microsoft/callback` | `https://YOUR_DOMAIN/api/auth/microsoft/callback` |
+| Google | `http://localhost:3000/api/auth/google/callback` | `https://YOUR_DOMAIN/api/auth/google/callback` |
 
-Add the exact URL under **App registrations → your app → Authentication → Web redirect URIs**.
+Add each exact URL in Entra **Authentication** and Google Cloud **OAuth client → Authorized redirect URIs**.

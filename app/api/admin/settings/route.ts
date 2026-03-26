@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { adminUnauthorizedResponse } from "@/lib/admin-guard";
 import { ensureGlobalSettings } from "@/lib/settings";
 import { isMicrosoftConnected } from "@/lib/microsoft-graph";
+import { isGoogleOAuthConnected } from "@/lib/google-oauth-tokens";
 import { getEnv } from "@/lib/env";
 import { z } from "zod";
 
@@ -21,9 +22,15 @@ export async function GET() {
     where: { id: 1 },
   });
   const microsoftConnected = await isMicrosoftConnected();
+  const googleConnected = await isGoogleOAuthConnected();
+  const googleOAuthEnvConfigured = Boolean(
+    env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET,
+  );
   return NextResponse.json({
     settings,
     microsoftConnected,
+    googleConnected,
+    googleOAuthEnvConfigured,
     busyFeedConfigured: Boolean(env.OUTLOOK_ICS_URL),
   });
 }

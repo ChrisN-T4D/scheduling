@@ -149,7 +149,7 @@ export async function POST(request: Request) {
     reservedId = booking.id;
 
     const googleEventId = await createGoogleCalendarEvent({
-      summary: `Session — ${parsed.data.studentName}`,
+      summary: `Meeting — ${parsed.data.studentName}`,
       startUtc,
       endUtc,
       studentEmail: parsed.data.studentEmail,

@@ -27,9 +27,11 @@ Set these on the **web** service (same names as [`.env.example`](../.env.example
 | `MICROSOFT_CLIENT_ID` | Optional: Entra app client ID (if using OAuth instead of ICS). |
 | `MICROSOFT_TENANT_ID` | Optional: `common` or your tenant ID. |
 | `MICROSOFT_CLIENT_SECRET` | Optional (confidential client). |
-| `GOOGLE_CLIENT_EMAIL` | Service account email with calendar write access. |
-| `GOOGLE_PRIVATE_KEY` | Service account private key (single-line, `\n` escaped). |
-| `GOOGLE_CALENDAR_ID` | Target Google calendar ID (`primary` or explicit id). |
+| `GOOGLE_OAUTH_CLIENT_ID` | OAuth Web client ID (for calendar invites). |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | OAuth Web client secret. |
+| `GOOGLE_CALENDAR_ID` | Optional; target calendar (`primary` default). |
+| `GOOGLE_CLIENT_EMAIL` | Optional fallback: service account email (if not using OAuth). |
+| `GOOGLE_PRIVATE_KEY` | Optional fallback: service account key (single-line, `\n` escaped). |
 
 Railway sets **`PORT`** automatically; Next.js uses it. You do not need to set `PORT` manually.
 
@@ -37,11 +39,17 @@ Railway sets **`PORT`** automatically; Next.js uses it. You do not need to set `
 
 **Settings** → **Networking** → **Generate Domain**. Put that URL (with `https://`) into `NEXT_PUBLIC_APP_URL`.
 
-## 5. Microsoft Entra redirect URI
+## 5. OAuth redirect URIs
 
-Add this **exact** redirect URI in Entra → your app → **Authentication**:
+**Microsoft Entra** — add this **exact** URI under **Authentication**:
 
 `{NEXT_PUBLIC_APP_URL}/api/auth/microsoft/callback`
+
+**Google Cloud** — under your OAuth Web client, add **Authorized redirect URI**:
+
+`{NEXT_PUBLIC_APP_URL}/api/auth/google/callback`
+
+After deploy, open **Admin** → **Connect Google** once to store the refresh token.
 
 ## 6. Build & start
 
