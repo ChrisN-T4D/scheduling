@@ -34,6 +34,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const from = searchParams.get("from");
   const to = searchParams.get("to");
+  const slotMinutesRaw = searchParams.get("slotMinutes");
   if (!from || !to) {
     return NextResponse.json(
       { error: "Query params from and to (ISO date) are required" },
@@ -63,6 +64,20 @@ export async function GET(request: Request) {
   const settings = await prisma.globalSettings.findUniqueOrThrow({
     where: { id: 1 },
   });
+  const requestedSlotMinutes =
+    slotMinutesRaw == null ? undefined : Number(slotMinutesRaw);
+  if (
+    requestedSlotMinutes != null &&
+    (!Number.isFinite(requestedSlotMinutes) ||
+      requestedSlotMinutes < 5 ||
+      requestedSlotMinutes > 480)
+  ) {
+    return NextResponse.json(
+      { error: "slotMinutes must be a number between 5 and 480" },
+      { status: 400 },
+    );
+  }
+  const slotMinutes = requestedSlotMinutes ?? settings.slotMinutes;
   const rules = await prisma.weeklyRule.findMany();
 
   const env = getEnv();
@@ -100,7 +115,7 @@ export async function GET(request: Request) {
     rangeStartUtc,
     rangeEndUtc,
     timezone: settings.timezone,
-    slotMinutes: settings.slotMinutes,
+    slotMinutes,
     bufferMinutes: settings.bufferMinutes,
     rules,
     busyUtc: busy,
@@ -112,7 +127,7 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     timezone: settings.timezone,
-    slotMinutes: settings.slotMinutes,
+    slotMinutes,
     busyFeedConfigured: Boolean(icsUrl),
     slots: slots.map((s) => ({
       start: s.start.toISOString(),

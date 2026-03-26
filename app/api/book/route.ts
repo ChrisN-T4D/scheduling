@@ -13,6 +13,7 @@ import { getClientIp } from "@/lib/request-ip";
 const bodySchema = z.object({
   start: z.iso.datetime(),
   end: z.iso.datetime(),
+  durationMinutes: z.number().int().min(5).max(480).optional(),
   studentName: z.string().min(1).max(200),
   studentEmail: z.string().email(),
   notes: z.string().max(2000).optional(),
@@ -69,6 +70,7 @@ export async function POST(request: Request) {
     where: { id: 1 },
   });
   const rules = await prisma.weeklyRule.findMany();
+  const slotMinutes = parsed.data.durationMinutes ?? settings.slotMinutes;
 
   const padMs = 60_000;
   const busy = icsUrl
@@ -87,7 +89,7 @@ export async function POST(request: Request) {
     rangeStartUtc: startUtc,
     rangeEndUtc: endUtc,
     timezone: settings.timezone,
-    slotMinutes: settings.slotMinutes,
+    slotMinutes,
     bufferMinutes: settings.bufferMinutes,
     rules,
     busyUtc: busy,

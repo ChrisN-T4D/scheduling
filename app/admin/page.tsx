@@ -252,7 +252,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-6 py-12">
+    <div className="mx-auto max-w-7xl px-6 py-12">
       <div className="flex items-center justify-between gap-4">
         <Link href="/" className="text-sm text-zinc-500 hover:underline">
           ← Home
