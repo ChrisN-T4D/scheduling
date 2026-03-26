@@ -228,12 +228,17 @@ export default function BookPage() {
         )}
 
         <div className="mt-6">
-          {loading ? (
+          {slots.length === 0 && loading ? (
             <p className="text-sm text-zinc-600 dark:text-zinc-300">Loading open times…</p>
           ) : slots.length === 0 ? (
             <p className="text-sm text-zinc-600 dark:text-zinc-300">No open slots in this range.</p>
           ) : (
             <>
+              {loading ? (
+                <p className="mb-2 text-xs text-zinc-500 dark:text-zinc-400">
+                  Updating availability…
+                </p>
+              ) : null}
               <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
                 <div className="grid grid-cols-7 border-b border-zinc-200 bg-zinc-50 text-xs font-medium dark:border-zinc-700 dark:bg-zinc-900/40">
                   {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
@@ -242,29 +247,29 @@ export default function BookPage() {
                     </div>
                   ))}
                 </div>
-                <div className="grid grid-cols-7">
+                <div className="grid grid-cols-7 border-l border-zinc-100 dark:border-zinc-800">
                   {monthCells.map((cell, idx) => {
                     const key = formatDateKey(cell, timezone);
                     const daySlots = slotsByDate[key] ?? [];
                     const isSelected = selectedDateKey === key;
                     const inMonth = cell.getMonth() === monthStart.getMonth();
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={`${key}-${idx}`}
-                        className={`min-h-24 border-t border-zinc-100 p-2 dark:border-zinc-800 ${
+                        onClick={() => {
+                          setSelectedDateKey(key);
+                          setSelected(null);
+                        }}
+                        className={`min-h-24 border-r border-t border-zinc-100 p-2 text-left dark:border-zinc-800 ${
                           isSelected ? "bg-[#c8102e]/10" : ""
                         }`}
                       >
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedDateKey(key);
-                            setSelected(null);
-                          }}
+                        <span
                           className={`text-sm font-medium ${inMonth ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400 dark:text-zinc-500"}`}
                         >
                           {cell.getDate()}
-                        </button>
+                        </span>
                         <div className="mt-2 flex flex-wrap gap-1">
                           {Array.from({ length: Math.min(daySlots.length, 4) }, (_, i) => (
                             <span
@@ -274,7 +279,7 @@ export default function BookPage() {
                             />
                           ))}
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
