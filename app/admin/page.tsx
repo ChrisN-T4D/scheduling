@@ -5,7 +5,15 @@ import { useCallback, useEffect, useState } from "react";
 import { DateTime } from "luxon";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const TIMEZONES = getTimezones();
+const TIMEZONES: Array<{ label: string; value: string }> = [
+  { label: "ET (Eastern)", value: "America/New_York" },
+  { label: "CT (Central)", value: "America/Chicago" },
+  { label: "MT (Mountain)", value: "America/Denver" },
+  { label: "PT (Pacific)", value: "America/Los_Angeles" },
+  { label: "AKT (Alaska)", value: "America/Anchorage" },
+  { label: "HT (Hawaii)", value: "Pacific/Honolulu" },
+  { label: "UTC", value: "UTC" },
+];
 
 type Settings = {
   timezone: string;
@@ -355,16 +363,22 @@ export default function AdminPage() {
           <div>
             <label className="block text-sm font-medium">Timezone (IANA)</label>
             <select
-              className="mt-1 w-full rounded-md border border-zinc-300 bg-transparent px-3 py-2 text-sm dark:border-zinc-600"
+              className="mt-1 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
               value={tz}
               onChange={(e) => setTz(e.target.value)}
             >
-              {!TIMEZONES.includes(tz) && tz ? (
-                <option value={tz}>{tz}</option>
+              {!TIMEZONES.some((z) => z.value === tz) && tz ? (
+                <option className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100" value={tz}>
+                  {tz}
+                </option>
               ) : null}
               {TIMEZONES.map((zone) => (
-                <option key={zone} value={zone}>
-                  {zone}
+                <option
+                  key={zone.value}
+                  value={zone.value}
+                  className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100"
+                >
+                  {zone.label}
                 </option>
               ))}
             </select>
@@ -431,12 +445,16 @@ export default function AdminPage() {
           <div>
             <label className="block text-xs text-zinc-500">Day</label>
             <select
-              className="mt-1 rounded-md border border-zinc-300 bg-transparent px-2 py-2 text-sm dark:border-zinc-600"
+              className="mt-1 rounded-md border border-zinc-300 bg-white px-2 py-2 text-sm text-zinc-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
               value={newDay}
               onChange={(e) => setNewDay(Number(e.target.value))}
             >
               {DAYS.map((d, i) => (
-                <option key={d} value={i}>
+                <option
+                  key={d}
+                  value={i}
+                  className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100"
+                >
                   {d}
                 </option>
               ))}
@@ -508,23 +526,6 @@ function safeDecode(s: string): string {
   }
 }
 
-function getTimezones(): string[] {
-  try {
-    // modern browsers / runtimes
-    if (typeof Intl.supportedValuesOf === "function") {
-      return Intl.supportedValuesOf("timeZone");
-    }
-  } catch {
-    // ignore and use fallback
-  }
-  return [
-    "America/New_York",
-    "America/Chicago",
-    "America/Denver",
-    "America/Los_Angeles",
-    "UTC",
-  ];
-}
 
 type CalendarSegment = {
   id: string;
