@@ -27,7 +27,7 @@ export default function Home() {
 
   return (
     <div className="mx-auto flex min-h-full max-w-2xl flex-col justify-center px-6 py-16">
-      <div className="rounded-2xl border border-[#c8102e]/30 bg-white p-8 text-center shadow-sm dark:bg-zinc-950">
+      <div className="rounded-2xl border border-[#c8102e]/30 bg-gradient-to-br from-white via-white to-[#fff5f7] p-8 text-center shadow-sm dark:from-zinc-950 dark:via-zinc-950 dark:to-[#2a0c13]">
         <p className="text-xs font-semibold uppercase tracking-wide text-[#c8102e]">
           Northwestern Oklahoma State University
         </p>

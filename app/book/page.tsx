@@ -118,7 +118,7 @@ export default function BookPage() {
   if (isDone) {
     return (
       <div className="mx-auto max-w-2xl px-6 py-16">
-        <div className="rounded-2xl border border-[#c8102e]/30 bg-white p-6 shadow-sm dark:bg-zinc-950">
+        <div className="rounded-2xl border border-[#c8102e]/30 bg-gradient-to-br from-white via-white to-[#fff5f7] p-6 shadow-sm dark:from-zinc-950 dark:via-zinc-950 dark:to-[#2a0c13]">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#c8102e]">
             NWOSU Scheduling
           </p>
@@ -160,7 +160,7 @@ export default function BookPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-12">
-      <div className="rounded-2xl border border-[#c8102e]/30 bg-white p-6 shadow-sm dark:bg-zinc-950">
+      <div className="rounded-2xl border border-[#c8102e]/30 bg-gradient-to-br from-white via-white to-[#fff5f7] p-6 shadow-sm dark:from-zinc-950 dark:via-zinc-950 dark:to-[#2a0c13]">
         <Link href="/" className="text-sm text-zinc-600 hover:underline">
           ← Home
         </Link>

@@ -258,28 +258,30 @@ export default function AdminPage() {
         <Link href="/" className="text-sm text-zinc-500 hover:underline">
           ← Home
         </Link>
-        <h1 className="mt-4 text-2xl font-semibold">Admin</h1>
-        <form onSubmit={login} className="mt-8 space-y-4">
-          <div>
-            <label className="block text-sm font-medium">Password</label>
-            <input
-              type="password"
-              required
-              className="mt-1 w-full rounded-md border border-zinc-300 bg-transparent px-3 py-2 dark:border-zinc-600"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-          {authError && (
-            <p className="text-sm text-red-600 dark:text-red-400">{authError}</p>
-          )}
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-zinc-900 py-3 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
-          >
-            Sign in
-          </button>
-        </form>
+        <div className="mt-4 rounded-2xl border border-[#c8102e]/30 bg-gradient-to-br from-white via-white to-[#fff5f7] p-6 shadow-sm dark:from-zinc-950 dark:via-zinc-950 dark:to-[#2a0c13]">
+          <h1 className="text-2xl font-semibold">Admin</h1>
+          <form onSubmit={login} className="mt-8 space-y-4">
+            <div>
+              <label className="block text-sm font-medium">Password</label>
+              <input
+                type="password"
+                required
+                className="mt-1 w-full rounded-md border border-zinc-300 bg-transparent px-3 py-2 dark:border-zinc-600"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            {authError && (
+              <p className="text-sm text-red-600 dark:text-red-400">{authError}</p>
+            )}
+            <button
+              type="submit"
+              className="w-full rounded-lg bg-zinc-900 py-3 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
+            >
+              Sign in
+            </button>
+          </form>
+        </div>
       </div>
     );
   }
